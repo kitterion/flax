@@ -1,0 +1,5 @@
+# Typical cmake build directories
+build*/
+
+# KDevelop files
+*.kdev4
