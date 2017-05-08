@@ -118,10 +118,33 @@ void Visit(const sol::object& o, int level, std::string* output) {
 }
 }  // namespace internal
 
-std::string ToString(const sol::object& obj){
+std::string ToString(const sol::object& obj) {
   std::string result;
   internal::Visit(obj, 0, &result);
   return result;
+}
+
+void TechnologyTree::Load(const sol::object& obj) {
+  for (auto& item : obj.as<sol::table>()) {
+    std::string name = item.first.as<std::string>();
+    auto tech = std::make_unique<Technology>();
+    tech->id = name;
+
+    sol::optional<sol::table> effects = item.second.as<sol::table>()["effects"];
+    if (!effects) {
+      continue;
+    }
+
+    for (const auto& effect : effects.value()) {
+      sol::optional<std::string> recipe =
+          effect.second.as<sol::table>()["recipe"];
+      if (recipe) {
+        tech->unlocked_recipes.emplace_back(recipe.value());
+      }
+    }
+
+    technologies_.emplace(name, std::move(tech));
+  }
 }
 
 void LuaData::LoadRecipes(const sol::object& obj) {
@@ -129,6 +152,7 @@ void LuaData::LoadRecipes(const sol::object& obj) {
     auto new_recipe = std::make_unique<Recipe>();
     std::string recipe_name = recipe.first.as<std::string>();
     new_recipe->id = recipe_name;
+    new_recipe->enabled = recipe.second.as<sol::table>().get<bool>("enabled");
 
     recipes_.emplace(recipe_name, std::move(new_recipe));
   }
@@ -155,4 +179,26 @@ bool LuaData::Load(const std::string& factorio_path) {
   EnableRecipesUnlockedFromTechnology();
 
   return true;
+}
+
+bool LuaData::LoadFromString(const std::string& lua_code) {
+  sol::state lua;
+  lua.script(lua_code);
+
+  LoadRecipes(lua["data"]["raw"]["recipe"]);
+  technology_tree_.Load(lua["data"]["raw"]["technology"]);
+  EnableRecipesUnlockedFromTechnology();
+
+  return true;
+}
+
+std::vector<std::string> LuaData::GetEnabledRecipeNames() const {
+  std::vector<std::string> result;
+  for (const auto& recipe : recipes_) {
+    if (recipe.second->enabled) {
+      result.emplace_back(recipe.first);
+    }
+  }
+
+  return result;
 }

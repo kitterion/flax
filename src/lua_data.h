@@ -11,13 +11,14 @@
 
 std::string ToString(const sol::object& obj);
 
+struct Ingredient {
+  std::string item;
+  int amount;
+};
+
 struct Recipe {
-  struct Slot {
-    std::string item;
-    int amount;
-  };
-  std::vector<Slot> inputs;
-  std::vector<Slot> outputs;
+  std::vector<Ingredient> inputs;
+  std::vector<Ingredient> outputs;
   std::string id;
   bool enabled;
 };
@@ -29,30 +30,7 @@ struct Technology {
 
 class TechnologyTree {
  public:
-  void Load(const sol::object& obj) {
-    for (auto& item : obj.as<sol::table>()) {
-      std::string name = item.first.as<std::string>();
-      auto tech = std::make_unique<Technology>();
-      tech->id = name;
-
-      sol::optional<sol::table> effects =
-          item.second.as<sol::table>()["effects"];
-      if (!effects) {
-        continue;
-      }
-
-      for (const auto& effect : effects.value()) {
-        sol::optional<std::string> recipe =
-            effect.second.as<sol::table>()["recipe"];
-        if (recipe) {
-          tech->unlocked_recipes.emplace_back(recipe.value());
-        }
-      }
-
-      technologies_.emplace(name, std::move(tech));
-    }
-  }
-
+  void Load(const sol::object& obj);
   const auto& technologies() const { return technologies_; }
 
  private:
@@ -62,6 +40,12 @@ class TechnologyTree {
 class LuaData {
  public:
   bool Load(const std::string& factorio_path);
+
+  // Useful for tests.
+  bool LoadFromString(const std::string& lua_code);
+
+  std::vector<const Recipe*> GetEnabledRecipes() const;
+  std::vector<std::string> GetEnabledRecipeNames() const;
 
  private:
   void EnableRecipesUnlockedFromTechnology();
