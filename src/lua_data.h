@@ -45,7 +45,6 @@ class LuaData {
   bool LoadFromString(const std::string& lua_code);
 
   std::vector<const Recipe*> GetEnabledRecipes() const;
-  std::vector<std::string> GetEnabledRecipeNames() const;
 
  private:
   void EnableRecipesUnlockedFromTechnology();

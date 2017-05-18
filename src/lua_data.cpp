@@ -192,11 +192,11 @@ bool LuaData::LoadFromString(const std::string& lua_code) {
   return true;
 }
 
-std::vector<std::string> LuaData::GetEnabledRecipeNames() const {
-  std::vector<std::string> result;
+std::vector<const Recipe*> LuaData::GetEnabledRecipes() const {
+  std::vector<const Recipe*> result;
   for (const auto& recipe : recipes_) {
     if (recipe.second->enabled) {
-      result.emplace_back(recipe.first);
+      result.emplace_back(recipe.second.get());
     }
   }
 
